@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="sr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Salamander kalkulator prozora</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">S</span><div><strong>SALAMANDER</strong><small>Kalkulator profila</small></div></div>
+    <span class="top-note">Procena materijala i skica</span>
+  </header>
+  <main class="container">
+    <section class="intro">
+      <p class="eyebrow">KALKULATOR PROZORA</p>
+      <h1>Izračunaj. Organizuj. Prikaži.</h1>
+      <p>Unesi dimenzije prozora, dodaj potrebne komade na listu, a zatim prikaži skice i procenu materijala.</p>
+    </section>
+
+    <div class="layout">
+      <section class="panel">
+        <div class="section-heading"><span class="step">01</span><div><h2>Podaci o prozoru</h2><p>Dimenzije se unose u milimetrima.</p></div></div>
+        <form id="windowForm">
+          <div class="field-grid">
+            <label>Širina (mm)<input id="width" type="number" min="250" max="4000" step="1" value="1200" required></label>
+            <label>Visina (mm)<input id="height" type="number" min="250" max="4000" step="1" value="1400" required></label>
+          </div>
+          <label>Tip prozora
+            <select id="type">
+              <option value="1">Jednokrilni</option>
+              <option value="2" selected>Dvokrilni</option>
+              <option value="3">Trokrilni</option>
+            </select>
+          </label>
+          <label>Sistem profila
+            <select id="system">
+              <option value="pro72">Salamander proEvolution 72 mm AD</option>
+              <option value="pro72md">Salamander proEvolution 72 mm MD</option>
+              <option value="green76">Salamander greenEvolution 76 mm MD A-klasa</option>
+              <option value="blue82">Salamander bluEvolution 82 mm MD</option>
+              <option value="blue92">Salamander bluEvolution 92 mm</option>
+            </select>
+          </label>
+          <div class="field-grid">
+            <label>Broj komada<input id="quantity" type="number" min="1" max="999" value="1" required></label>
+            <label>Oznaka (opciono)<input id="label" type="text" maxlength="50" placeholder="npr. Dnevna soba"></label>
+          </div>
+          <fieldset class="extras-fieldset">
+            <legend>Dodatna oprema</legend>
+            <label class="check-option"><input id="roller" type="checkbox"><span><strong>Roletna</strong><small>60 €/m²</small></span></label>
+            <label class="check-option"><input id="mosquito" type="checkbox"><span><strong>Komarnik</strong><small>40 €/m²</small></span></label>
+            <p class="extras-hint">Dodaci se računaju prema površini prozora (širina × visina) i broju komada.</p>
+          </fieldset>
+          <button class="primary full" type="submit">＋ Dodaj na listu</button>
+        </form>
+        <div class="notice"><strong>Napomena o ceni</strong><p>Obračun je procena PVC profila prema cenovniku. Ne uključuje staklo, okov, ručke, zaptivne gume, proizvodnju, montažu ni otpad. Količine profila su geometrijska procena, ne krojna lista za proizvodnju.</p></div>
+      </section>
+
+      <section class="panel list-panel">
+        <div class="section-heading"><span class="step">02</span><div><h2>Lista prozora</h2><p id="listSubtitle">Još nema dodatih prozora.</p></div></div>
+        <div id="windowList" class="window-list"><div class="empty-state">Dodaj prvi prozor da bi se pojavio na listi.</div></div>
+        <div class="list-actions">
+          <button id="showBtn" class="primary" type="button">Prikaži skice i obračun</button>
+          <button id="clearBtn" class="secondary" type="button">Obriši listu</button>
+        </div>
+      </section>
+    </div>
+
+    <section id="results" class="results hidden">
+      <div class="section-heading"><span class="step">03</span><div><h2>Skice i obračun</h2><p>Skice su šematske i nisu radionički crteži.</p></div></div>
+      <div id="summary" class="summary-grid"></div>
+      <div id="sketchGrid" class="sketch-grid"></div>
+      <div class="download-row">
+        <button id="downloadSvgBtn" class="primary" type="button">Preuzmi skice (SVG)</button>
+        <button id="downloadPngBtn" class="secondary" type="button">Preuzmi skice (PNG)</button>
+        <button id="downloadCsvBtn" class="secondary" type="button">Preuzmi obračun (CSV)</button>
+        <button id="printBtn" class="secondary" type="button">Štampaj / sačuvaj kao PDF</button>
+      </div>
+      <p class="small-note">Cene profila su preuzete iz dostavljenog cenovnika Salamander / Lyctum, verzija 09.10.2026. Cenovnik navodi cene profila po štapu (6 m ili 6,5 m); aplikacija računa proporcionalni trošak potrošene dužine.</p>
+    </section>
+    <footer>Salamander kalkulator · Orijentacioni obračun materijala</footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
