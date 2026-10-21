@@ -9,9 +9,14 @@
 <body>
   <header class="topbar">
     <div class="brand"><span class="brand-mark">S</span><div><strong>SALAMANDER</strong><small>Kalkulator profila</small></div></div>
+    <span class="top-note">Procena materijala i skica</span>
   </header>
   <main class="container">
-    
+    <section class="intro">
+      <p class="eyebrow">KALKULATOR PROZORA</p>
+      <h1>Izračunaj. Organizuj. Prikaži.</h1>
+      <p>Unesi dimenzije prozora, dodaj potrebne komade na listu, a zatim prikaži skice i procenu materijala.</p>
+    </section>
 
     <div class="layout">
       <section class="panel">
@@ -41,15 +46,23 @@
             <label>Broj komada<input id="quantity" type="number" min="1" max="999" value="1" required></label>
             <label>Oznaka (opciono)<input id="label" type="text" maxlength="50" placeholder="npr. Dnevna soba"></label>
           </div>
+          <label>Vrsta stakla
+            <select id="glass">
+              <option value="none">Bez obračuna stakla</option>
+              <option value="double" selected>Dvoslojno staklo — 38 €/m²</option>
+              <option value="triple">Troslojno staklo — 46 €/m²</option>
+            </select>
+          </label>
           <fieldset class="extras-fieldset">
             <legend>Dodatna oprema</legend>
+            <label class="check-option"><input id="hardware" type="checkbox"><span><strong>Siegenia okov</strong><small>Prema tabeli dimenzija sa slike, MACO cena − 1 €</small></span></label>
             <label class="check-option"><input id="roller" type="checkbox"><span><strong>Roletna</strong><small>60 €/m²</small></span></label>
             <label class="check-option"><input id="mosquito" type="checkbox"><span><strong>Komarnik</strong><small>40 €/m²</small></span></label>
             <p class="extras-hint">Dodaci se računaju prema površini prozora (širina × visina) i broju komada.</p>
           </fieldset>
           <button class="primary full" type="submit">＋ Dodaj na listu</button>
         </form>
-      <div class="notice"><strong>Napomena o ceni</strong><p>Obračun je procena PVC profila prema cenovniku. Ne uključuje staklo, okov, ručke, zaptivne gume, proizvodnju, montažu ni otpad. Količine profila su geometrijska procena, ne krojna lista za proizvodnju.</p></div>
+        <div class="notice"><strong>Napomena o ceni</strong><p>Obračun je procena PVC profila prema cenovniku. Okov se procenjuje prema tabeli dimenzija sa dostavljene slike; za dimenzije kojih nema u tabeli koristi se najbliža dimenzija. Za trokrilni prozor okov je procenjen kao dvokrilni set + jednokrilni set. Ne uključuje ručke, zaptivne gume, rad, montažu ni otpad. Količine profila su geometrijska procena, ne krojna lista za proizvodnju.</p></div>
       </section>
 
       <section class="panel list-panel">
@@ -72,7 +85,7 @@
         <button id="downloadCsvBtn" class="secondary" type="button">Preuzmi obračun (CSV)</button>
         <button id="printBtn" class="secondary" type="button">Štampaj / sačuvaj kao PDF</button>
       </div>
-      <p class="small-note">Cene profila su preuzete iz dostavljenog cenovnika Salamander / Lyctum, verzija 09.10.2026. Cenovnik navodi cene profila po štapu (6 m ili 6,5 m); aplikacija računa proporcionalni trošak potrošene dužine.</p>
+      <p class="small-note">Cene profila su preuzete iz dostavljenog cenovnika Salamander / Lyctum. Cena stakla: dvoslojno 38 €/m², troslojno 46 €/m². Siegenia okov je obračunat prema dostavljenoj tabeli, umanjenoj za 1 € u odnosu na MACO cenu. Cenovnik navodi cene profila po štapu (6 m ili 6,5 m); aplikacija računa proporcionalni trošak potrošene dužine.</p>
     </section>
     <footer>Salamander kalkulator · Orijentacioni obračun materijala</footer>
   </main>
