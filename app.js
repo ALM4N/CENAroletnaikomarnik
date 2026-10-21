@@ -11,6 +11,18 @@ const $ = id => document.getElementById(id);
 const PROFIT_RATE = 0.70;
 const ROLLER_PRICE_M2 = 60;
 const MOSQUITO_PRICE_M2 = 40;
+const GLASS_PRICE_M2 = { none: 0, double: 38, triple: 46 };
+// Dimenzije su u cm, preuzete sa slike; cena Siegenia = prikazana MACO cena - 1 €.
+const HARDWARE_SINGLE = [
+  [60,60,15.51],[60,80,16.83],[80,100,20.66],[80,140,20.89],
+  [80,200,26.26],[80,220,26.57],[100,100,24.05],[100,140,24.28],
+  [100,200,29.65],[100,220,29.96],[120,120,24.47],[120,140,24.70]
+];
+const HARDWARE_DOUBLE = [
+  [100,100,35.04],[100,140,35.27],[100,200,40.64],[100,220,40.95],
+  [120,120,35.04],[120,140,35.27],[120,200,40.64],[120,220,40.95],
+  [140,140,36.28],[140,200,41.65],[140,220,41.96]
+];
 let windows = [];
 let lastResults = [];
 
@@ -23,7 +35,7 @@ $("windowForm").addEventListener("submit",e=>{
   e.preventDefault();
   const w=Number($("width").value), h=Number($("height").value), n=Number($("type").value), q=Number($("quantity").value);
   if(!Number.isFinite(w)||!Number.isFinite(h)||w<250||h<250||w>4000||h>4000||q<1||q>999){alert("Unesi širinu i visinu od 250 do 4000 mm i broj komada od 1 do 999.");return}
-  windows.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),w,h,n,q,system:$("system").value,label:$("label").value.trim(),roller:$("roller").checked,mosquito:$("mosquito").checked});
+  windows.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),w,h,n,q,system:$("system").value,label:$("label").value.trim(),glass:$("glass").value,hardware:$("hardware").checked,roller:$("roller").checked,mosquito:$("mosquito").checked});
   renderList();
   $("label").value="";
 });
@@ -31,9 +43,9 @@ function renderList(){
   const el=$("windowList");
   $("listSubtitle").textContent=windows.length?`${windows.length} stavki · ${windows.reduce((s,x)=>s+x.q,0)} ukupno komada`:"Još nema dodatih prozora.";
   if(!windows.length){el.innerHTML='<div class="empty-state">Dodaj prvi prozor da bi se pojavio na listi.</div>';return}
-  el.innerHTML=windows.map((x,i)=>`<article class="window-item"><div><strong>${safe(x.label||`Prozor ${i+1}`)} · ${typeName(x.n)}</strong><p>${mm(x.w)} × ${mm(x.h)} · ${x.q} kom. · ${safe(SYSTEMS[x.system].name)}${x.roller?' · roletna':''}${x.mosquito?' · komarnik':''}</p></div><div class="item-actions"><button class="mini-btn" data-edit="${x.id}">Izmeni</button><button class="mini-btn delete" data-delete="${x.id}">Ukloni</button></div></article>`).join("");
+  el.innerHTML=windows.map((x,i)=>`<article class="window-item"><div><strong>${safe(x.label||`Prozor ${i+1}`)} · ${typeName(x.n)}</strong><p>${mm(x.w)} × ${mm(x.h)} · ${x.q} kom. · ${safe(SYSTEMS[x.system].name)}${x.roller?' · roletna':''}${x.mosquito?' · komarnik':''}${x.glass&&x.glass!=="none"?` · ${x.glass==="double"?"dvoslojno":"troslojno"} staklo`:""}${x.hardware?' · Siegenia okov':''}</p></div><div class="item-actions"><button class="mini-btn" data-edit="${x.id}">Izmeni</button><button class="mini-btn delete" data-delete="${x.id}">Ukloni</button></div></article>`).join("");
   el.querySelectorAll("[data-delete]").forEach(b=>b.onclick=()=>{windows=windows.filter(x=>x.id!==b.dataset.delete);renderList()});
-  el.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{const x=windows.find(x=>x.id===b.dataset.edit);if(!x)return;$("width").value=x.w;$("height").value=x.h;$("type").value=x.n;$("quantity").value=x.q;$("system").value=x.system;$("label").value=x.label;$("roller").checked=!!x.roller;$("mosquito").checked=!!x.mosquito;windows=windows.filter(y=>y.id!==x.id);renderList();window.scrollTo({top:0,behavior:"smooth"})});
+  el.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{const x=windows.find(x=>x.id===b.dataset.edit);if(!x)return;$("width").value=x.w;$("height").value=x.h;$("type").value=x.n;$("quantity").value=x.q;$("system").value=x.system;$("label").value=x.label;$("roller").checked=!!x.roller;$("mosquito").checked=!!x.mosquito;$("glass").value=x.glass||"none";$("hardware").checked=!!x.hardware;windows=windows.filter(y=>y.id!==x.id);renderList();window.scrollTo({top:0,behavior:"smooth"})});
 }
 $("clearBtn").onclick=()=>{if(windows.length&&confirm("Obrisati celu listu prozora?")){windows=[];renderList();$("results").classList.add("hidden")}};
 $("showBtn").onclick=()=>{
@@ -41,6 +53,18 @@ $("showBtn").onclick=()=>{
   lastResults=windows.map(x=>({...x,cost:calculate(x)}));
   renderResults();$("results").classList.remove("hidden");$("results").scrollIntoView({behavior:"smooth",block:"start"});
 };
+function hardwarePrice(w,h,n){
+  const wc=w/10, hc=h/10;
+  function nearest(table){
+    let best=table[0], score=Infinity;
+    for(const row of table){const d=Math.abs(row[0]-wc)+Math.abs(row[1]-hc);if(d<score){score=d;best=row}}
+    return best[2];
+  }
+  if(n===1)return nearest(HARDWARE_SINGLE);
+  if(n===2)return nearest(HARDWARE_DOUBLE);
+  // Za trokrilni prozor slika ne sadrži posebnu cenu: procena je dvokrilni + jednokrilni set.
+  return nearest(HARDWARE_DOUBLE)+nearest(HARDWARE_SINGLE);
+}
 function calculate(x){
   const p=SYSTEMS[x.system], w=x.w/1000,h=x.h/1000,n=x.n,q=x.q;
   const frameLen=2*(w+h);
@@ -58,10 +82,12 @@ function calculate(x){
   ].map(z=>({...z,cost:z.len*z.price/z.stock*q}));
   const profileTotal=parts.reduce((s,z)=>s+z.cost,0);
   const area=w*h;
+  const glassCost=(x.glass&&x.glass!=="none")?area*GLASS_PRICE_M2[x.glass]*q:0;
+  const hardwareCost=x.hardware?hardwarePrice(x.w,x.h,n)*q:0;
   const rollerCost=x.roller?area*ROLLER_PRICE_M2*q:0;
   const mosquitoCost=x.mosquito?area*MOSQUITO_PRICE_M2*q:0;
-  const total=profileTotal+rollerCost+mosquitoCost;
-  return {parts,total,profileTotal,rollerCost,mosquitoCost,area,perPiece:total/q,frameLen,sashLen,beadLen,tLen,reinLen,system:p};
+  const total=profileTotal+glassCost+hardwareCost+rollerCost+mosquitoCost;
+  return {parts,total,profileTotal,glassCost,hardwareCost,glassType:x.glass||"none",rollerCost,mosquitoCost,area,perPiece:total/q,frameLen,sashLen,beadLen,tLen,reinLen,system:p};
 }
 function svgSketch(x){
   const width=540,height=370, left=100,top=56,drawW=340,drawH=250;
@@ -85,18 +111,22 @@ function renderResults(){
   // Roletne i komarnici se dodaju kao zasebne stavke, bez menjanja obračuna profila.
   const profileCostTotal=lastResults.reduce((s,x)=>s+x.cost.profileTotal,0);
   const extrasTotal=lastResults.reduce((s,x)=>s+x.cost.rollerCost+x.cost.mosquitoCost,0);
+  const productionTotal=profileCostTotal+lastResults.reduce((s,x)=>s+x.cost.glassCost+x.cost.hardwareCost,0);
   // Zarada se računa samo na cenu proizvodnje profila.
   // Roletne i komarnici se dodaju posle obračuna zarade, bez marže.
-  const totalProfit=profileCostTotal*PROFIT_RATE;
-  const totalSale=profileCostTotal+totalProfit+extrasTotal;
+  const totalProfit=productionTotal*PROFIT_RATE;
+  const totalSale=productionTotal+totalProfit+extrasTotal;
   const rollerTotal=lastResults.reduce((s,x)=>s+x.cost.rollerCost,0);
   const mosquitoTotal=lastResults.reduce((s,x)=>s+x.cost.mosquitoCost,0);
+  const glassTotal=lastResults.reduce((s,x)=>s+x.cost.glassCost,0);
+  const hardwareTotal=lastResults.reduce((s,x)=>s+x.cost.hardwareCost,0);
   const allLength=lastResults.reduce((s,x)=>s+(x.cost.frameLen+x.cost.sashLen+x.cost.beadLen+x.cost.reinLen+x.cost.tLen)*x.q,0);
-  $("summary").innerHTML=`<div class="metric"><span>Ukupno prozora</span><strong>${totalPieces}</strong><small>komada</small></div><div class="metric"><span>Cena proizvodnje profila</span><strong>${euro(profileCostTotal)}</strong><small>nepromenjen obračun profila</small></div><div class="metric"><span>Roletne ukupno</span><strong>${euro(rollerTotal)}</strong><small>60 €/m²</small></div><div class="metric"><span>Komarnici ukupno</span><strong>${euro(mosquitoTotal)}</strong><small>40 €/m²</small></div><div class="metric"><span>Cena proizvodnje + zarada</span><strong>${euro(profileCostTotal+totalProfit)}</strong><small>zarada 70% samo na cenu profila</small></div><div class="metric"><span>Zarada (70%)</span><strong>${euro(totalProfit)}</strong><small>obračunata samo na proizvodnju prozora</small></div><div class="metric"><span>Prodajna cena ukupno</span><strong>${euro(totalSale)}</strong><small>proizvodnja + zarada + roletne/komarnici</small></div><div class="metric"><span>Utrošak profila (približno)</span><strong>${allLength.toFixed(2)} m</strong><small>zbir svih stavki</small></div>`;
+  $("summary").innerHTML=`<div class="metric"><span>Ukupno prozora</span><strong>${totalPieces}</strong><small>komada</small></div><div class="metric"><span>Cena proizvodnje profila</span><strong>${euro(profileCostTotal)}</strong><small>nepromenjen obračun profila</small></div><div class="metric"><span>Staklo ukupno</span><strong>${euro(glassTotal)}</strong><small>dvoslojno 38 €/m² · troslojno 46 €/m²</small></div><div class="metric"><span>Siegenia okov ukupno</span><strong>${euro(hardwareTotal)}</strong><small>prema tabeli dimenzija</small></div><div class="metric"><span>Roletne ukupno</span><strong>${euro(rollerTotal)}</strong><small>60 €/m²</small></div><div class="metric"><span>Komarnici ukupno</span><strong>${euro(mosquitoTotal)}</strong><small>40 €/m²</small></div><div class="metric"><span>Cena proizvodnje + zarada</span><strong>${euro(productionTotal+totalProfit)}</strong><small>profili + staklo + okov, sa zaradom 70%</small></div><div class="metric"><span>Zarada (70%)</span><strong>${euro(totalProfit)}</strong><small>obračunata samo na proizvodnju prozora</small></div><div class="metric"><span>Prodajna cena ukupno</span><strong>${euro(totalSale)}</strong><small>proizvodnja + zarada + roletne/komarnici</small></div><div class="metric"><span>Utrošak profila (približno)</span><strong>${allLength.toFixed(2)} m</strong><small>zbir svih stavki</small></div>`;
   $("sketchGrid").innerHTML=lastResults.map((x,i)=>{
-    const profit=x.cost.profileTotal*PROFIT_RATE, sale=x.cost.profileTotal+profit+x.cost.rollerCost+x.cost.mosquitoCost;
+    const production=x.cost.profileTotal+x.cost.glassCost+x.cost.hardwareCost;
+    const profit=production*PROFIT_RATE, sale=production+profit+x.cost.rollerCost+x.cost.mosquitoCost;
     const extras=x.cost.rollerCost+x.cost.mosquitoCost;
-    return `<article class="sketch-card"><header><strong>${safe(x.label||`Prozor ${i+1}`)} · ${typeName(x.n)}</strong><span>${x.q} kom.</span></header><div class="sketch-wrap">${svgSketch(x)}</div><div class="sketch-caption"><strong>${mm(x.w)} × ${mm(x.h)}</strong><br>${safe(x.cost.system.name)}<br>Cena proizvodnje profila po komadu: ${euro(x.cost.profileTotal/x.q)}<br>Zarada po komadu (70% samo na profile): ${euro(profit/x.q)}<br>Cena profila sa zaradom po komadu: ${euro((x.cost.profileTotal+profit)/x.q)}<br>Roletne i komarnici po komadu: ${euro(extras/x.q)}<br><strong>Prodajna cena po komadu: ${euro(sale/x.q)}</strong><br>Profili za stavku: ${euro(x.cost.profileTotal)} · zarada za stavku: ${euro(profit)}<br>Roletne: ${euro(x.cost.rollerCost)} · komarnici: ${euro(x.cost.mosquitoCost)}<br><strong>Prodajna cena stavke: ${euro(sale)}</strong><br>${x.cost.parts.map(p=>`${safe(p.name)}: ${p.len.toFixed(2)} m × ${x.q} = ${euro(p.cost)}`).join("<br>")}</div></article>`;
+    return `<article class="sketch-card"><header><strong>${safe(x.label||`Prozor ${i+1}`)} · ${typeName(x.n)}</strong><span>${x.q} kom.</span></header><div class="sketch-wrap">${svgSketch(x)}</div><div class="sketch-caption"><strong>${mm(x.w)} × ${mm(x.h)}</strong><br>${safe(x.cost.system.name)}<br>Cena proizvodnje profila po komadu: ${euro(x.cost.profileTotal/x.q)}<br>Staklo: ${x.glass&&x.glass!=="none"?(x.glass==="double"?"dvoslojno":"troslojno")+" ("+euro(x.cost.glassCost/x.q)+")":"nije obračunato"}<br>Siegenia okov: ${x.hardware?euro(x.cost.hardwareCost/x.q):"nije izabran"}<br>Zarada po komadu (70% na profile, staklo i okov): ${euro(profit/x.q)}<br>Cena prozora sa zaradom po komadu: ${euro((production+profit)/x.q)}<br>Roletne i komarnici po komadu: ${euro(extras/x.q)}<br><strong>Prodajna cena po komadu: ${euro(sale/x.q)}</strong><br>Profili za stavku: ${euro(x.cost.profileTotal)} · staklo: ${euro(x.cost.glassCost)} · Siegenia okov: ${euro(x.cost.hardwareCost)} · zarada: ${euro(profit)}<br>Roletne: ${euro(x.cost.rollerCost)} · komarnici: ${euro(x.cost.mosquitoCost)}<br><strong>Prodajna cena stavke: ${euro(sale)}</strong><br>${x.cost.parts.map(p=>`${safe(p.name)}: ${p.len.toFixed(2)} m × ${x.q} = ${euro(p.cost)}`).join("<br>")}</div></article>`;
   }).join("");
 }
 function downloadBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url)}
@@ -115,16 +145,18 @@ $("downloadPngBtn").onclick=async()=>{
   img.onerror=()=>{URL.revokeObjectURL(url);alert("PNG nije mogao da se napravi. Preuzmi SVG umesto njega.")};img.src=url;
 };
 $("downloadCsvBtn").onclick=()=>{
-  const rows=[["Naziv","Tip","Sistem","Širina (mm)","Visina (mm)","Količina","Stavka","Dužina po prozoru (m)","Cena profila po štapu (€)","Dužina štapa (m)","Trošak stavke (€)","Roletna (€)","Komarnik (€)","Cena proizvodnje profila (€)","Zarada 70% na profile (€)","Cena profila sa zaradom (€)","Ukupno dodaci (€)","Prodajna cena (€)"]];
+  const rows=[["Naziv","Tip","Sistem","Širina (mm)","Visina (mm)","Količina","Stavka","Dužina/količina","Cena po jedinici (€)","Dužina štapa (m)","Trošak stavke (€)","Staklo (€)","Siegenia okov (€)","Roletna (€)","Komarnik (€)","Cena proizvodnje profila (€)","Zarada 70% na profile+staklo+okov (€)","Prodajna cena (€)"]];
   lastResults.forEach((x,i)=>{
-    const profit=x.cost.profileTotal*PROFIT_RATE;
-    const extras=x.cost.rollerCost+x.cost.mosquitoCost;
-    const sale=x.cost.profileTotal+profit+extras;
-    x.cost.parts.forEach((p,j)=>rows.push([x.label||`Prozor ${i+1}`,typeName(x.n),x.cost.system.name,x.w,x.h,x.q,p.name,p.len.toFixed(3),p.price,p.stock,p.cost.toFixed(2),"","",j===0?x.cost.profileTotal.toFixed(2):"",j===0?profit.toFixed(2):"",j===0?(x.cost.profileTotal+profit).toFixed(2):"",j===0?extras.toFixed(2):"",j===0?sale.toFixed(2):""]));
-    if(x.roller) rows.push([x.label||`Prozor ${i+1}`,typeName(x.n),x.cost.system.name,x.w,x.h,x.q,"Roletna (60 €/m²)",(x.cost.area*x.q).toFixed(3),60,"1 m²",x.cost.rollerCost.toFixed(2),x.cost.rollerCost.toFixed(2),"","","","","",""]);
-    if(x.mosquito) rows.push([x.label||`Prozor ${i+1}`,typeName(x.n),x.cost.system.name,x.w,x.h,x.q,"Komarnik (40 €/m²)",(x.cost.area*x.q).toFixed(3),40,"1 m²",x.cost.mosquitoCost.toFixed(2),"",x.cost.mosquitoCost.toFixed(2),"","","","",""]);
+    const production=x.cost.profileTotal+x.cost.glassCost+x.cost.hardwareCost;
+    const profit=production*PROFIT_RATE, extras=x.cost.rollerCost+x.cost.mosquitoCost, sale=production+profit+extras;
+    x.cost.parts.forEach((part,j)=>rows.push([x.label||`Prozor ${i+1}`,typeName(x.n),x.cost.system.name,x.w,x.h,x.q,part.name,part.len.toFixed(3),part.price,part.stock,part.cost.toFixed(2),"","","","",j===0?x.cost.profileTotal.toFixed(2):"",j===0?profit.toFixed(2):"",j===0?sale.toFixed(2):""]));
+    if(x.glass&&x.glass!=="none")rows.push([x.label||`Prozor ${i+1}`,typeName(x.n),x.cost.system.name,x.w,x.h,x.q,x.glass==="double"?"Dvoslojno staklo (38 €/m²)":"Troslojno staklo (46 €/m²)",(x.cost.area*x.q).toFixed(3),GLASS_PRICE_M2[x.glass],"1 m²",x.cost.glassCost.toFixed(2),x.cost.glassCost.toFixed(2),"","","","","",""]);
+    if(x.hardware)rows.push([x.label||`Prozor ${i+1}`,typeName(x.n),x.cost.system.name,x.w,x.h,x.q,"Siegenia okov (cena sa slike - 1 €)",x.q, (x.cost.hardwareCost/x.q).toFixed(2),"set",x.cost.hardwareCost.toFixed(2),"",x.cost.hardwareCost.toFixed(2),"","","","",""]);
+    if(x.roller)rows.push([x.label||`Prozor ${i+1}`,typeName(x.n),x.cost.system.name,x.w,x.h,x.q,"Roletna (60 €/m²)",(x.cost.area*x.q).toFixed(3),60,"1 m²",x.cost.rollerCost.toFixed(2),"","",x.cost.rollerCost.toFixed(2),"","","",""]);
+    if(x.mosquito)rows.push([x.label||`Prozor ${i+1}`,typeName(x.n),x.cost.system.name,x.w,x.h,x.q,"Komarnik (40 €/m²)",(x.cost.area*x.q).toFixed(3),40,"1 m²",x.cost.mosquitoCost.toFixed(2),"","","",x.cost.mosquitoCost.toFixed(2),"","",""]);
   });
   const csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(";")).join("\r\n");
   downloadBlob(new Blob([csv],{type:"text/csv;charset=utf-8"}),"salamander-obracun.csv");
 };
 $("printBtn").onclick=()=>window.print();
+
